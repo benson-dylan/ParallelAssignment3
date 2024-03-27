@@ -148,10 +148,10 @@ class ConcurrentLinkedList
 class Servant extends Thread
 {
     private int ID;
-    private Set<Integer> presents;
-    private Set<Integer> cards;
-    private ConcurrentLinkedList list;
-    private Lock lock;
+    private static Set<Integer> presents;
+    private static Set<Integer> cards;
+    private static ConcurrentLinkedList list;
+    private static Lock lock;
 
     // Operation Constants
     final static int TAKE_PRESENT = 0;
@@ -188,13 +188,12 @@ class Servant extends Thread
                             continue;
                         }
 
-                        synchronized (lock)
-                        {
-                            Iterator<Integer> gift = presents.iterator();
-                            int num = gift.next().intValue();
-                            presents.remove(num);
-                            list.add(num);
-                        } 
+                        
+                        Iterator<Integer> gift = presents.iterator();
+                        Integer num = gift.next();
+                        gift.remove();
+                        list.add(num);
+                        
                     }
                     finally
                     {
@@ -220,8 +219,8 @@ class Servant extends Thread
                         continue;
                     }
 
-                    System.out.println("Thank you for the gift guest #" + gift);
-                    System.out.println("# of presents in chain: " + list.size());
+                    // System.out.println("Thank you for the gift guest #" + gift);
+                    // System.out.println("# of presents in chain: " + list.size());
 
                     lock.lock();
                     try
@@ -241,9 +240,9 @@ class Servant extends Thread
                     int randomGuest = (int) (Math.random() * NUM_PRESENTS) + 1;
                     boolean found = list.search(randomGuest);
 
-                    System.out.println("Minotaur says to search for guest " + randomGuest + "'s gift.");
-                    System.out.println("Guest " + randomGuest + "'s gift was " + (found ? "found" : "not found"));
-                    System.out.println("# of cards written: " + cards.size());
+                    // System.out.println("Minotaur says to search for guest " + randomGuest + "'s gift.");
+                    // System.out.println("Guest " + randomGuest + "'s gift was " + (found ? "found" : "not found"));
+                    // System.out.println("# of cards written: " + cards.size());
                     break;
                 }
             }
