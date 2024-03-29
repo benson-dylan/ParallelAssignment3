@@ -1,6 +1,9 @@
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 import java.util.*;
+import java.io.PrintWriter;
+import java.io.File;
+import java.io.FileNotFoundException;
 
 class Node
 {
@@ -152,6 +155,7 @@ class Servant extends Thread
     private static Set<Integer> cards;
     private static ConcurrentLinkedList list;
     private static Lock lock;
+    private static PrintWriter writer;
 
     // Operation Constants
     final static int TAKE_PRESENT = 0;
@@ -160,13 +164,14 @@ class Servant extends Thread
 
     final static int NUM_PRESENTS = 500000;
 
-    public Servant (int ID, Set<Integer> presents, Set<Integer> cards, ConcurrentLinkedList list)
+    public Servant (int ID, Set<Integer> presents, Set<Integer> cards, ConcurrentLinkedList list, PrintWriter writer)
     {
         this.ID = ID;
         this.presents = presents;
         this.cards = cards;
         this.list = list;
         this.lock = new ReentrantLock();
+        this.writer = writer;
     }
 
     public void run()
@@ -178,7 +183,6 @@ class Servant extends Thread
             switch (task)
             {
                 case TAKE_PRESENT: {
-                    //System.out.println(ID + "TAKE PRESENT");
                     lock.lock();
                     
                     try
@@ -204,8 +208,6 @@ class Servant extends Thread
                 }
                     
                 case WRITE_CARD: {
-                    //.out.println(ID + "WRITE CARD");
-
                     
                     if (list.empty())
                     {
@@ -219,8 +221,8 @@ class Servant extends Thread
                         continue;
                     }
 
-                    // System.out.println("Thank you for the gift guest #" + gift);
-                    // System.out.println("# of presents in chain: " + list.size());
+                    //System.out.println("Thank you for the gift guest #" + gift);
+                    writer.append("Thank you for the gift guest #" + gift + "\n");
 
                     lock.lock();
                     try
@@ -236,17 +238,16 @@ class Servant extends Thread
                 }
 
                 case CHECK_GIFT: {
-                    //System.out.println(ID + " CHECK GIFT");
                     int randomGuest = (int) (Math.random() * NUM_PRESENTS) + 1;
                     boolean found = list.search(randomGuest);
 
                     // System.out.println("Minotaur says to search for guest " + randomGuest + "'s gift.");
                     // System.out.println("Guest " + randomGuest + "'s gift was " + (found ? "found" : "not found"));
-                    // System.out.println("# of cards written: " + cards.size());
+                    writer.append("Minotaur says to search for guest " + randomGuest + "'s gift.\n");
+                    writer.append("Guest " + randomGuest + "'s gift was " + (found ? "found" : "not found\n"));
                     break;
                 }
             }
-            //list.print();
         }
     }
 }
@@ -262,34 +263,43 @@ public class BirthdayPresents
         ConcurrentLinkedList list = new ConcurrentLinkedList();
         Set<Integer> presents = Collections.synchronizedSet(new HashSet<>());
         Set<Integer> cards = Collections.synchronizedSet(new HashSet<>());
-
-        for (int i = 0; i < NUM_PRESENTS; i++)
+        File outFile = new File("out.txt");
+        
+        try (PrintWriter writer = new PrintWriter(outFile))
         {
-            presents.add(i + 1);
-        }
-        Collections.shuffle(new java.util.ArrayList<>(presents));
- 
-        Servant[] servants = new Servant[NUM_THREADS];
-
-        long startTime = System.currentTimeMillis();
-        for (int i = 0; i < NUM_THREADS; i++)
-        {
-            servants[i] = new Servant(i + 1, presents, cards, list);
-            servants[i].start();
-        }
-
-        for (Servant servant : servants) 
-        {
-            try {
-                servant.join();
-            } catch (InterruptedException e) {
-                e.printStackTrace();
+            for (int i = 0; i < NUM_PRESENTS; i++)
+            {
+                presents.add(i + 1);
             }
+            Collections.shuffle(new java.util.ArrayList<>(presents));
+    
+            Servant[] servants = new Servant[NUM_THREADS];
+
+            long startTime = System.currentTimeMillis();
+            for (int i = 0; i < NUM_THREADS; i++)
+            {
+                servants[i] = new Servant(i + 1, presents, cards, list, writer);
+                servants[i].start();
+            }
+
+            for (Servant servant : servants) 
+            {
+                try {
+                    servant.join();
+                } catch (InterruptedException e) {
+                    e.printStackTrace();
+                }
+            }
+
+            long endTime = System.currentTimeMillis();
+            long duration = endTime - startTime;
+            System.out.println("All gift cards have been written in " + duration + " milliseconds");
         }
-
-        long endTime = System.currentTimeMillis();
-        long duration = endTime - startTime;
-
-        System.out.println("All gift cards have been written in " + duration + " milliseconds");
+        catch (FileNotFoundException e)
+        {
+            e.printStackTrace();
+        }
+        
+        //writer.close();
     }
 }
